@@ -5,14 +5,13 @@ from PyQt5.QtWidgets import \
     QApplication, QMainWindow, QLabel, QPushButton,\
     QHBoxLayout, QVBoxLayout, QGridLayout, QWidget,\
     QLineEdit, QSizePolicy, QFileDialog, QDialog,\
-    QSpacerItem, QCheckBox, QGroupBox, QRadioButton
+    QSpacerItem, QGroupBox, QRadioButton
     
 from PyQt5.QtGui import \
-    QPainter, QPen, QBrush, QPixmap, QColor, QFont, \
-    QImage, QFontDatabase, QFontMetrics, QIntValidator, \
-    QDesktopServices, QPolygon
+    QPainter, QPen, QBrush, QPixmap, QColor, \
+    QImage, QIntValidator
     
-from PyQt5.QtCore import Qt, QTimer, QUrl, QPoint
+from PyQt5.QtCore import Qt, QTimer, QPoint
 from PyQt5 import QtTest
 
 def cv2pixmap(cvImg):
@@ -243,7 +242,7 @@ class SettingDialog(QDialog):
         title.setStyleSheet("font-size: 40px; font-weight: bold; font-family: Arial")
         
         subtitle = QLabel("github.com/ZeroAct")
-        subtitle.setStyleSheet("font-size: 15px; font-family: Arial; font-color: blue")
+        subtitle.setStyleSheet("font-size: 15px; font-family: Arial;")
         
         self.directory = QLineEdit('./')
         self.directory.setReadOnly(True)
@@ -268,7 +267,7 @@ class SettingDialog(QDialog):
             self.start_btn.setEnabled(False)
         
         self.status = QLabel(f"{n} images detected")
-        self.status.setStyleSheet("font-size: 20px; font-family: Arial; font-color: blue")
+        self.status.setStyleSheet("font-size: 20px; font-family: Arial;")
         
         ml = QVBoxLayout()
         ml.addWidget(title, alignment=Qt.AlignCenter)
@@ -330,6 +329,9 @@ class MainWindow(QMainWindow):
         setting_values = GetSetting()
         self.img_dir = setting_values["img_dir"]
         self.img_paths = get_image_paths(self.img_dir)
+        if len(self.img_paths) == 0:
+            self.close()
+            raise BaseException("0 image detected")
         
         self.result_path = os.path.join("results", os.path.split(self.img_dir)[-1])
         os.makedirs(self.result_path, exist_ok=True)
@@ -508,8 +510,12 @@ class MainWindow(QMainWindow):
         self.canvas.show_example(int(self.crop_size.text()), int(self.stride.text()))
     
     def closeEvent(self, e):
-        self.canvas.close()
-    
+        try:
+            self.canvas.close()
+        except:
+            pass
+        self.close()
+        
     def moveEvent(self, e):
         self.canvas.move(self.x()+self.width()+15, self.y())
 
