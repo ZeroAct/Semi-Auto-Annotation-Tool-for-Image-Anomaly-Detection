@@ -25,7 +25,7 @@ Output : negative/positive sample image patches, mask images, annotations
 
 - First, choose a directory contains more than one image.
 
-- Second, adjust canvas size depends on your monitor resolution.
+- Second, adjust canvas size. It depends on your monitor resolution.
 
 - Third, click start cropping button.
 
