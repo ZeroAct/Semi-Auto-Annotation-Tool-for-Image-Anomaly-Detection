@@ -317,10 +317,11 @@ class SettingDialog(QDialog):
 def GetSetting():
     f = SettingDialog()
     f.exec_()
-    
-    return {"img_dir": f.directory.text(),
-            "canvas_width": int(f.canvas_width.text()),
-            "canvas_height": int(f.canvas_height.text())}
+    res = {"img_dir": f.directory.text(),
+           "canvas_width": int(f.canvas_width.text()),
+           "canvas_height": int(f.canvas_height.text())}.copy()
+    del f
+    return res
 
 class MainWindow(QMainWindow):
     def __init__(self):
