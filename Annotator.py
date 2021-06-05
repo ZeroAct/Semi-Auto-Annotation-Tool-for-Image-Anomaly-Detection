@@ -1,4 +1,4 @@
-import cv2, glob, os, math
+import cv2, glob, os, math, argparse
 import numpy as np
 
 from PyQt5.QtWidgets import \
@@ -51,7 +51,7 @@ def get_point_distance(p1, p2):
     return math.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2)
 
 def get_image_paths(directory):
-    img_exts = ['bmp', 'jpg', 'jpeg', 'png']
+    img_exts = ['bmp', 'jpg', 'jpeg', 'png', 'tif']
     
     image_paths = []
     for img_ext in img_exts:
@@ -230,104 +230,15 @@ class Canvas(QLabel):
     def change_mode(self, mode):
         self.mode = mode
 
-        
-class SettingDialog(QDialog):
-    def __init__(self):
-        super().__init__()
-        
-        self.setWindowTitle("Welcome")
-        self.setStyleSheet("font-size: 20px; font-weight: bold; font-family: Arial")
-        
-        title = QLabel("Abnormal Area Auto Cropping")
-        title.setStyleSheet("font-size: 40px; font-weight: bold; font-family: Arial")
-        
-        subtitle = QLabel("github.com/ZeroAct")
-        subtitle.setStyleSheet("font-size: 15px; font-family: Arial;")
-        
-        self.directory = QLineEdit('./')
-        self.directory.setReadOnly(True)
-        self.directory.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
-        self.directory.setFixedWidth(540)
-        
-        browse_btn = QPushButton("Load Directory")
-        browse_btn.clicked.connect(self.browse_directory)
-        browse_btn.setFixedWidth(160)
-        
-        self.canvas_width = QLineEdit("1280")
-        self.canvas_width.setValidator(QIntValidator())
-        self.canvas_height = QLineEdit("720")
-        self.canvas_height.setValidator(QIntValidator())
-        
-        self.start_btn = QPushButton("Start Cropping!")
-        self.start_btn.clicked.connect(self.close)
-        self.start_btn.setFixedWidth(160)
-        self.start_btn.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
-        n = len(get_image_paths('./'))
-        if n == 0:
-            self.start_btn.setEnabled(False)
-        
-        self.status = QLabel(f"{n} images detected")
-        self.status.setStyleSheet("font-size: 20px; font-family: Arial;")
-        
-        ml = QVBoxLayout()
-        ml.addWidget(title, alignment=Qt.AlignCenter)
-        ml.addWidget(subtitle, alignment=Qt.AlignRight)
-        
-        s = QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding)
-        ml.addItem(s)
-        
-        ml.addWidget(QLabel("Directory Setting"))
-        fl = QHBoxLayout()
-        fl.addWidget(self.directory, alignment=Qt.AlignLeft)
-        fl.addWidget(browse_btn, alignment=Qt.AlignRight)
-        ml.addItem(fl)
-        
-        ml.addItem(s)
-        ml.addWidget(QLabel("Canvas Size Setting"))
-        
-        cl = QGridLayout()
-        cl.setSpacing(4)
-        cl.addWidget(QLabel("Width  : "), 0, 0, 1, 1)
-        cl.addWidget(self.canvas_width, 0, 1, 1, 1)
-        cl.addWidget(QLabel("Height : "), 1, 0, 1, 1)
-        cl.addWidget(self.canvas_height, 1, 1, 1, 1)
-        cl.addWidget(self.start_btn, 0, 2, 2, 1)
-        ml.addItem(cl)
-        
-        ml.addWidget(self.status, alignment=Qt.AlignRight)
-        
-        self.setLayout(ml)
-        self.show()
-        self.setFixedSize(self.size())
-    
-    def browse_directory(self):
-        directory = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
-        
-        if directory == '':
-            directory = './'
-        
-        n = len(get_image_paths(directory))
-        if n == 0:
-            self.start_btn.setEnabled(False)
-        else:
-            self.start_btn.setEnabled(True)
-        self.status.setText(f"{n} images detected")
-        self.directory.setText(directory)
-
-def GetSetting():
-    f = SettingDialog()
-    f.exec_()
-    res = {"img_dir": f.directory.text(),
-           "canvas_width": int(f.canvas_width.text()),
-           "canvas_height": int(f.canvas_height.text())}.copy()
-    del f
-    return res
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, args):
         super().__init__()
         
-        setting_values = GetSetting()
+        setting_values = {"img_dir": args.directory,
+                          "canvas_width": int(args.width),
+                          "canvas_height": int(args.height)}
+        
         self.img_dir = setting_values["img_dir"]
         self.img_paths = get_image_paths(self.img_dir)
         if len(self.img_paths) == 0:
@@ -493,7 +404,7 @@ class MainWindow(QMainWindow):
                 if inter_area == 0:
                     cv2.imwrite(os.path.join(self.positive_path, f"{img_name}_{positive_index}.png"), img[y1:y2, x1:x2, :])
                     positive_index += 1
-                elif inter_area >= crop_area * 0.01:
+                elif inter_area > 0:
                     cv2.imwrite(os.path.join(self.negative_path, f"{img_name}_{negative_index}.png"), img[y1:y2, x1:x2, :])
                     cv2.imwrite(os.path.join(self.negative_mask_path, f"{img_name}_{negative_index}.png"), mask_img[y1:y2, x1:x2]*255)
                     negative_index += 1
@@ -521,7 +432,13 @@ class MainWindow(QMainWindow):
         self.canvas.move(self.x()+self.width()+15, self.y())
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--directory', required=True, type=str, help='image directory')
+    parser.add_argument('--width', default=1280, type=int, help='canvas width')
+    parser.add_argument('--height', default=720, type=int, help='canvas height')
+    
+    args = parser.parse_args()
+    
     app = QApplication([])
-    w = MainWindow()
+    w = MainWindow(args)
     app.exec_()
-
