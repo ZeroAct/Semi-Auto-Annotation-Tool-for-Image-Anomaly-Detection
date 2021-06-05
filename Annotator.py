@@ -336,6 +336,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(w)
         
         img_name = os.path.splitext(os.path.split(self.img_paths[self.label_index])[-1])[0]
+        self.setWindowTitle(img_name)
         self.canvas.SetImage(self.img_paths[self.label_index], os.path.join(self.label_path, img_name+".txt"))
         
         self.show()
@@ -348,6 +349,7 @@ class MainWindow(QMainWindow):
         self.label_index_w.setText(f"{self.label_index + 1} / {len(self.img_paths)}")
         
         img_name = os.path.splitext(os.path.split(self.img_paths[self.label_index])[-1])[0]
+        self.setWindowTitle(img_name)
         self.canvas.SetImage(self.img_paths[self.label_index], os.path.join(self.label_path, img_name+".txt"))
     
     def change_ann_mode(self):
@@ -383,35 +385,35 @@ class MainWindow(QMainWindow):
         
         # crop img
         crop_size = int(self.crop_size.text())
-        crop_area = crop_size**2
         stride = int(self.stride.text())
         
-        start_xs = list(range(0, width-crop_size, stride))
-        start_ys = list(range(0, height-crop_size, stride))
-        
-        positive_index = 0
-        negative_index = 0
-        
-        total_step = len(start_xs) * len(start_ys)
-        progress_idx = 0
-        for x1 in start_xs:
-            for y1 in start_ys:
-                x2 = x1 + crop_size
-                y2 = y1 + crop_size
-                
-                inter_area = np.sum(mask_img[y1:y2, x1:x2])
-                
-                if inter_area == 0:
-                    cv2.imwrite(os.path.join(self.positive_path, f"{img_name}_{positive_index}.png"), img[y1:y2, x1:x2, :])
-                    positive_index += 1
-                elif inter_area > 0:
-                    cv2.imwrite(os.path.join(self.negative_path, f"{img_name}_{negative_index}.png"), img[y1:y2, x1:x2, :])
-                    cv2.imwrite(os.path.join(self.negative_mask_path, f"{img_name}_{negative_index}.png"), mask_img[y1:y2, x1:x2]*255)
-                    negative_index += 1
-                
-                progress_idx += 1
-                self.crop_btn.setText(f"{int(progress_idx/total_step*100)} %")
-                QtTest.QTest.qWait(1)
+        if crop_size != 0:
+            start_xs = list(range(0, width-crop_size, stride))
+            start_ys = list(range(0, height-crop_size, stride))
+            
+            positive_index = 0
+            negative_index = 0
+            
+            total_step = len(start_xs) * len(start_ys)
+            progress_idx = 0
+            for x1 in start_xs:
+                for y1 in start_ys:
+                    x2 = x1 + crop_size
+                    y2 = y1 + crop_size
+                    
+                    inter_area = np.sum(mask_img[y1:y2, x1:x2])
+                    
+                    if inter_area == 0:
+                        cv2.imwrite(os.path.join(self.positive_path, f"{img_name}_{positive_index}.png"), img[y1:y2, x1:x2, :])
+                        positive_index += 1
+                    elif inter_area > 0:
+                        cv2.imwrite(os.path.join(self.negative_path, f"{img_name}_{negative_index}.png"), img[y1:y2, x1:x2, :])
+                        cv2.imwrite(os.path.join(self.negative_mask_path, f"{img_name}_{negative_index}.png"), mask_img[y1:y2, x1:x2]*255)
+                        negative_index += 1
+                    
+                    progress_idx += 1
+                    self.crop_btn.setText(f"{int(progress_idx/total_step*100)} %")
+                    QtTest.QTest.qWait(1)
         
         self.crop_btn.setEnabled(True)
         self.next_btn.setEnabled(True)
